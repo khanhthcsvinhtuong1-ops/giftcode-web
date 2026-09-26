@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIFTCODE PRO - Quản Lý Giftcode Game & Tự Động Sao Lưu</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gaming: {
+                            base: 'var(--bg-base)',
+                            card: 'var(--bg-card)',
+                            accent: '#8B5CF6',
+                            accentHover: '#7C3AED',
+                            neon: '#06B6D4',
+                            gold: '#F59E0B',
+                            danger: '#EF4444',
+                            success: '#10B981'
+                        }
+                    },
+                    boxShadow: {
+                        'neon': '0 0 15px rgba(6, 182, 212, 0.3)',
+                        'purple-glow': '0 0 20px rgba(139, 92, 246, 0.25)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+
+    <!-- Third-Party Libraries for Multi-Format Import & Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --bg-base: #F3F4F6;
+            --bg-card: #FFFFFF;
+            --border-color: #E5E7EB;
+            --text-main: #111827;
+            --text-muted: #6B7280;
+            --input-bg: #F9FAFB;
+        }
+
+        html.dark {
+            --bg-base: #0B0F19;
+            --bg-card: #111827;
+            --border-color: #1F2937;
+            --text-main: #F3F4F6;
+            --text-muted: #9CA3AF;
+            --input-bg: #111827;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .font-gaming { font-family: 'Rajdhani', sans-serif; }
+        .font-brand { font-family: 'Orbitron', sans-serif; }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-base); }
+        ::-webkit-scrollbar-thumb { background: #6B7280; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4B5563; }
+        
+        .drag-active {
+            border-color: #06B6D4 !important;
+            background-color: rgba(6, 182, 212, 0.1) !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col pb-20">
+
+    <!-- Header Navigation -->
+    <header class="bg-white dark:bg-gaming-card border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30 backdrop-blur-md bg-opacity-90 dark:bg-opacity-90 transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <!-- Logo & Auto-Save Badge -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-gaming-accent to-gaming-neon flex items-center justify-center shadow-neon">
+                    <i class="fa-solid fa-gamepad text-xl text-white"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h1 class="text-xl font-brand font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gaming-neon via-purple-500 to-gaming-accent tracking-wider">
+                            GIFTCODE AUTO 
+                        </h1>
+                        <!-- Auto-save Live Indicator Status -->
+                        <span id="autoSaveBadge" class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-gaming font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-gaming-success border border-emerald-300 dark:border-emerald-800/50">
+                            <i class="fa-solid fa-floppy-disk mr-1"></i>
+                            <span id="autoSaveText">Tự động lưu sẵn sàng</span>
+                        </span>
+                    </div>
+                    <p class="text-[10px] text-gray-500 dark:text-gray-400 font-gaming uppercase tracking-widest -mt-1">Auto Backup & Duplicate Scanner</p>
+                </div>
+            </div>
+
+            <!-- Header Actions -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <!-- Backup & Restore Quick Menu Button -->
+                <button onclick="openBackupModal()" title="Quản lý sao lưu & Khôi phục" 
+                    class="p-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-purple-600 dark:text-purple-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition flex items-center space-x-1.5 font-gaming font-bold text-xs">
+                    <i class="fa-solid fa-database text-sm"></i>
+                    <span class="hidden md:inline">Sao Lưu / Khôi Phục</span>
+                </button>
+
+                <!-- Theme Toggle Button -->
+                <button onclick="toggleTheme()" id="themeToggleBtn" title="Chuyển chế độ Giao diện" 
+                    class="p-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-amber-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+                    <i id="themeIcon" class="fa-solid fa-sun text-base"></i>
+                </button>
+
+                <button onclick="openImportModal()" class="flex items-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-3.5 py-2 rounded-lg font-gaming font-bold text-sm transition shadow-md">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span class="hidden sm:inline">Up File & Kiểm Trùng</span>
+                </button>
+                <button onclick="switchTab('directInput')" class="flex items-center space-x-2 bg-gaming-neon/10 hover:bg-gaming-neon/20 text-cyan-600 dark:text-gaming-neon border border-gaming-neon/40 px-3.5 py-2 rounded-lg font-gaming font-bold text-sm transition shadow-neon">
+                    <i class="fa-solid fa-paste"></i>
+                    <span class="hidden sm:inline">Nhập Trực Tiếp</span>
+                </button>
+                <button onclick="openAddModal()" class="flex items-center space-x-2 bg-gradient-to-r from-gaming-accent to-purple-600 hover:from-gaming-accentHover hover:to-purple-700 text-white px-3.5 py-2 rounded-lg font-gaming font-bold text-sm transition shadow-purple-glow">
+                    <i class="fa-solid fa-plus"></i>
+                    <span class="hidden sm:inline">Thêm 1 Code</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white dark:bg-gaming-card p-4 rounded-xl border border-gray-200 dark:border-gray-800 flex items-center justify-between shadow-sm">
+                <div>
+                    <p class="text-xs font-gaming text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tổng Code Kho</p>
+                    <p id="statTotal" class="text-2xl font-bold font-gaming text-gray-900 dark:text-white">0</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex items-center justify-center">
+                    <i class="fa-solid fa-cubes text-lg"></i>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gaming-card p-4 rounded-xl border border-gray-200 dark:border-gray-800 flex items-center justify-between shadow-sm">
+                <div>
+                    <p class="text-xs font-gaming text-gray-500 dark:text-gray-400 uppercase tracking-wider">Mã Khả Dụng</p>
+                    <p id="statUnused" class="text-2xl font-bold font-gaming text-emerald-600 dark:text-gaming-success">0</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-gaming-success border border-emerald-200 dark:border-emerald-800/30 flex items-center justify-center">
+                    <i class="fa-solid fa-ticket text-lg"></i>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gaming-card p-4 rounded-xl border border-gray-200 dark:border-gray-800 flex items-center justify-between shadow-sm">
+                <div>
+                    <p class="text-xs font-gaming text-gray-500 dark:text-gray-400 uppercase tracking-wider">Đã Sử Dụng</p>
+                    <p id="statUsed" class="text-2xl font-bold font-gaming text-gray-500 dark:text-gray-400">0</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800/80 text-gray-500 flex items-center justify-center">
+                    <i class="fa-solid fa-circle-check text-lg"></i>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gaming-card p-4 rounded-xl border border-gray-200 dark:border-gray-800 flex items-center justify-between shadow-sm">
+                <div>
+                    <p class="text-xs font-gaming text-gray-500 dark:text-gray-400 uppercase tracking-wider">Đã Hết Hạn</p>
+                    <p id="statExpired" class="text-2xl font-bold font-gaming text-red-600 dark:text-gaming-danger">0</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-gaming-danger border border-red-200 dark:border-red-800/30 flex items-center justify-center">
+                    <i class="fa-solid fa-clock text-lg"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-gray-200 dark:border-gray-800 space-x-4">
+            <button id="tabVaultBtn" onclick="switchTab('vault')" class="pb-3 px-2 font-gaming font-bold text-sm border-b-2 border-gaming-neon text-cyan-600 dark:text-gaming-neon flex items-center space-x-2">
+                <i class="fa-solid fa-database"></i>
+                <span>Kho Giftcode Trực Tuyến</span>
+            </button>
+            <button id="tabDirectBtn" onclick="switchTab('directInput')" class="pb-3 px-2 font-gaming font-bold text-sm border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center space-x-2">
+                <i class="fa-solid fa-keyboard"></i>
+                <span>Nhập Trực Tiếp Nhiều Code (Paste Quick)</span>
+            </button>
+        </div>
+
+        <!-- TAB 1: Direct Input Section -->
+        <div id="directInputSection" class="hidden bg-white dark:bg-gaming-card p-5 rounded-xl border border-gray-200 dark:border-gray-800 space-y-4 shadow-sm">
+            <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-3">
+                <div class="flex items-center space-x-2 text-cyan-600 dark:text-gaming-neon">
+                    <i class="fa-solid fa-paste text-lg"></i>
+                    <h2 class="font-brand font-bold text-gray-900 dark:text-white text-sm">Dán Nhanh Danh Sách Giftcode</h2>
+                </div>
+                <span class="text-xs text-gray-500 dark:text-gray-400">Tự động lưu lại kho ngay sau khi thêm</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-gaming text-gray-500 dark:text-gray-400 uppercase mb-1">Tên Game Gán Chung <span class="text-red-500">*</span></label>
+                    <input type="text" id="directGame" required placeholder="VD: Genshin Impact, Free Fire..." list="gameSuggestions"
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-xs text-gray-900 dark:text-gray-100 focus:border-gaming-neon outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-gaming text-gray-500 dark:text-gray-400 uppercase mb-1">Hạn Sử Dụng Chung</label>
+                    <input type="date" id="directExpiry"
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-xs text-gray-900 dark:text-gray-100 focus:border-gaming-neon outline-none">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-gaming text-gray-500 dark:text-gray-400 uppercase mb-1">Danh Sách Mã Code Dán Vào Đây:</label>
+                <textarea id="directPasteText" rows="6" placeholder="GENSHIN2026&#10;FF9M-2N3B-4V5C&#10;VIP8888, VIP9999"
+                    class="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg font-mono text-xs text-gray-900 dark:text-gray-100 focus:border-gaming-neon outline-none resize-y"></textarea>
+            </div>
+
+            <div class="flex justify-between items-center pt-2">
+                <button onclick="document.getElementById('directPasteText').value=''" class="px-3 py-1.5 bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded text-xs font-gaming">
+                    Xóa Nội Dung
+                </button>
+                <button onclick="processDirectInput()" class="px-5 py-2 bg-gradient-to-r from-gaming-neon to-cyan-600 hover:from-cyan-400 hover:to-cyan-600 text-gray-950 font-gaming font-bold text-sm rounded-lg shadow-neon flex items-center space-x-2">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Kiểm Tra Trùng & Nhập Tự Động Lưu</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- TAB 2: Main Vault List -->
+        <div id="vaultSection" class="space-y-4">
+            <div class="bg-white dark:bg-gaming-card p-4 rounded-xl border border-gray-200 dark:border-gray-800 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm">
+                
+                <!-- Search & Filters -->
+                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto flex-1">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-search absolute left-3.5 top-3 text-gray-400 text-sm"></i>
+                        <input type="text" id="searchInput" oninput="renderApp()" placeholder="Tìm theo Mã code, Tên game..." 
+                            class="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 focus:border-gaming-neon rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none">
+                    </div>
+
+                    <select id="filterGame" onchange="renderApp()" class="bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-lg focus:border-gaming-neon p-2.5 outline-none">
+                        <option value="ALL">Tất cả Game</option>
+                    </select>
+
+                    <select id="filterStatus" onchange="renderApp()" class="bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-lg focus:border-gaming-neon p-2.5 outline-none">
+                        <option value="ALL">Tất cả trạng thái</option>
+                        <option value="UNUSED">Chưa dùng</option>
+                        <option value="USED">Đã dùng</option>
+                        <option value="EXPIRED">Đã hết hạn</option>
+                    </select>
+                </div>
+
+                <!-- Export & Global Action Tools -->
+                <div class="flex items-center space-x-2 w-full md:w-auto justify-end flex-wrap gap-y-2">
+                    <button onclick="openBulkGameModal('FILTERED')" title="Đổi tên game cho tất cả mã đang hiển thị theo bộ lọc" class="px-3 py-2 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800/50 rounded-lg text-xs font-gaming font-semibold transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-filter"></i>
+                        <span>Đổi Tên Game Mã Đang Lọc</span>
+                    </button>
+                    <button onclick="exportData('excel')" class="px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/50 rounded-lg text-xs font-gaming font-semibold transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span>Tải Excel</span>
+                    </button>
+                    <button onclick="exportData('txt')" class="px-3 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-gaming font-semibold transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-file-arrow-down text-cyan-600 dark:text-gaming-neon"></i>
+                        <span>Tải TXT</span>
+                    </button>
+                    <button onclick="exportData('json')" class="px-3 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-gaming font-semibold transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-file-code text-amber-500"></i>
+                        <span>Tải JSON</span>
+                    </button>
+                    <button onclick="cleanOldCodes()" class="px-3 py-2 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800/50 rounded-lg text-xs font-gaming font-semibold transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span>Xóa Mã Rác</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gaming-card rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-lg transition-colors">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-800 text-xs font-gaming font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                <th class="py-3.5 px-4 w-10 text-center">
+                                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)" class="w-4 h-4 text-purple-600 rounded border-gray-300 dark:border-gray-700 focus:ring-purple-500 cursor-pointer">
+                                </th>
+                                <th class="py-3.5 px-4">Tên Game</th>
+                                <th class="py-3.5 px-4">Mã Giftcode</th>
+                                <th class="py-3.5 px-4">Hạn Sử Dụng</th>
+                                <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                                <th class="py-3.5 px-4 text-right">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="codeTableBody" class="divide-y divide-gray-200 dark:divide-gray-800/60 text-sm">
+                            <!-- Dynamic code items -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="emptyState" class="hidden py-16 flex-col items-center justify-center text-center">
+                    <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600 flex items-center justify-center mb-3 text-2xl">
+                        <i class="fa-solid fa-ticket-simple"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-gray-700 dark:text-gray-300 font-gaming">KHO GIFTCODE TRỐNG</h3>
+                    <p class="text-xs text-gray-500 max-w-sm mt-1">Chưa có mã giftcode nào. Tự động lưu dữ liệu sẽ được kích hoạt ngay khi bạn thêm mã!</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Floating Bulk Actions Toolbar -->
+    <div id="bulkActionsBar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 bg-gray-900/95 dark:bg-gray-800/95 border border-purple-500/50 text-white px-5 py-3 rounded-2xl shadow-2xl backdrop-blur-md hidden transition-all duration-300 flex items-center space-x-4 max-w-2xl w-[90%] sm:w-auto">
+        <div class="flex items-center space-x-2 border-r border-gray-700 pr-4">
+            <span class="w-6 h-6 rounded-full bg-purple-600 text-white font-bold font-gaming text-xs flex items-center justify-center" id="selectedCount">0</span>
+            <span class="text-xs font-gaming font-semibold hidden sm:inline">Đã chọn</span>
+        </div>
+
+        <div class="flex items-center space-x-2 flex-1 justify-center">
+            <!-- Mass Game Name Change Button -->
+            <button onclick="openBulkGameModal('SELECTED')" class="px-3.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-gaming font-bold text-xs rounded-lg shadow-purple-glow flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Đổi Tên Game Hàng Loạt</span>
+            </button>
+
+            <!-- Bulk Status Change Dropdown -->
+            <select onchange="bulkChangeStatus(this.value); this.value='';" class="bg-gray-800 border border-gray-700 text-gray-200 text-xs font-gaming font-bold rounded-lg px-2.5 py-1.5 outline-none focus:border-purple-500">
+                <option value="">-- Đổi Trạng Thái --</option>
+                <option value="UNUSED">Thành Chưa Dùng</option>
+                <option value="USED">Thành Đã Dùng</option>
+                <option value="EXPIRED">Thành Hết Hạn</option>
+            </select>
+
+            <!-- Bulk Delete -->
+            <button onclick="bulkDelete()" class="px-3 py-1.5 bg-red-600/80 hover:bg-red-600 text-white font-gaming font-bold text-xs rounded-lg flex items-center space-x-1 transition">
+                <i class="fa-solid fa-trash"></i>
+                <span class="hidden sm:inline">Xóa</span>
+            </button>
+        </div>
+
+        <button onclick="clearSelections()" class="text-gray-400 hover:text-white text-sm pl-2">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+
+    <!-- MODAL 0: BACKUP & RESTORE CENTER -->
+    <div id="backupModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gaming-card w-full max-w-xl rounded-xl border border-purple-500/40 shadow-purple-glow overflow-hidden">
+            <div class="p-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                <div class="flex items-center space-x-2 text-purple-600 dark:text-purple-400">
+                    <i class="fa-solid fa-shield-halved text-lg"></i>
+                    <h3 class="font-brand font-bold text-gray-900 dark:text-white text-base">Trung Tâm Sao Lưu & Khôi Phục</h3>
+                </div>
+                <button onclick="closeBackupModal()" class="text-gray-400 hover:text-gray-700 dark:hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-5 space-y-4">
+                <!-- Status & Info Box -->
+                <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-gaming text-gray-500 dark:text-gray-400 uppercase">Trạng Thái Tự Động Lưu Trình Duyệt</p>
+                        <p id="backupLastSavedTime" class="text-sm font-bold text-emerald-600 dark:text-gaming-success">Chưa lưu</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs font-gaming text-gray-500 dark:text-gray-400 uppercase">Dữ Liệu Kho</p>
+                        <p id="backupTotalCount" class="text-sm font-bold text-cyan-600 dark:text-gaming-neon">0 mã giftcode</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Export Manual Backup File -->
+                    <div class="p-4 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/50 rounded-xl space-y-2">
+                        <div class="flex items-center space-x-2 text-purple-700 dark:text-purple-300 font-gaming font-bold text-sm">
+                            <i class="fa-solid fa-download"></i>
+                            <span>Tải Bản Sao Lưu (.json)</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400">Xuất file dữ liệu dự phòng hoàn chỉnh để lưu giữ hoặc chuyển sang máy khác.</p>
+                        <button onclick="downloadFullBackupFile()" class="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-gaming font-bold text-xs rounded-lg shadow-sm">
+                            Xuất File Sao Lưu Ngay
+                        </button>
+                    </div>
+
+                    <!-- Restore from Backup File -->
+                    <div class="p-4 bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-900/50 rounded-xl space-y-2">
+                        <div class="flex items-center space-x-2 text-cyan-700 dark:text-cyan-300 font-gaming font-bold text-sm">
+                            <i class="fa-solid fa-upload"></i>
+                            <span>Khôi Phục Tệp Sao Lưu</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400">Tải lên file sao lưu `.json` để nạp lại kho dữ liệu giftcode đã lưu trước đó.</p>
+                        <input type="file" id="restoreFileInput" accept=".json" onchange="handleRestoreFileSelect(event)" class="hidden">
+                        <button onclick="document.getElementById('restoreFileInput').click()" class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-gaming font-bold text-xs rounded-lg shadow-sm">
+                            Chọn File Khôi Phục
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Danger Zone: Clear LocalStorage -->
+                <div class="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-red-700 dark:text-red-400">Xóa Trắng Bộ Nhớ Trình Duyệt</p>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400">Xóa sạch toàn bộ giftcode khỏi localStorage trên trình duyệt này.</p>
+                    </div>
+                    <button onclick="resetAllStorageData()" class="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white font-gaming font-bold text-xs rounded-lg">
+                        Xóa Sạch Dữ Liệu
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex justify-end">
+                <button onclick="closeBackupModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-gaming font-bold text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Bulk Edit Game Name -->
+    <div id="bulkGameModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gaming-card w-full max-w-md rounded-xl border border-purple-500/40 shadow-purple-glow overflow-hidden">
+            <div class="p-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                <div class="flex items-center space-x-2 text-purple-600 dark:text-purple-400">
+                    <i class="fa-solid fa-gamepad text-lg"></i>
+                    <h3 class="font-brand font-bold text-gray-900 dark:text-white text-base">Đổi Tên Game Hàng Loạt</h3>
+                </div>
+                <button onclick="closeBulkGameModal()" class="text-gray-400 hover:text-gray-700 dark:hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-5 space-y-4">
+                <div class="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-lg border border-purple-200 dark:border-purple-900/50 text-xs text-purple-900 dark:text-purple-300">
+                    <p id="bulkGameTargetInfo" class="font-bold font-gaming">Sẽ cập nhật tên Game mới cho 0 mã giftcode.</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-gaming font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                        Nhập Tên Game Mới HOẶC Chọn Game Có Sẵn:
+                    </label>
+                    <input type="text" id="bulkNewGameName" required placeholder="VD: Delta Force Mobile..." list="gameSuggestions"
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:border-purple-500 outline-none">
+                </div>
+            </div>
+
+            <div class="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex justify-end space-x-3">
+                <button onclick="closeBulkGameModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-gaming font-bold text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">Hủy Bỏ</button>
+                <button onclick="confirmBulkGameEdit()" class="px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-gaming font-bold text-sm rounded-lg shadow-purple-glow flex items-center space-x-2">
+                    <i class="fa-solid fa-check-double"></i>
+                    <span>Xác Nhận Đổi Tên</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 1: Upload File with Instant Duplicate Check -->
+    <div id="importModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gaming-card w-full max-w-2xl rounded-xl border border-gray-200 dark:border-gray-700 shadow-purple-glow overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                <div class="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400">
+                    <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
+                    <h3 class="font-brand font-bold text-gray-900 dark:text-white text-base">Up File & Kiểm Trùng Lặp Tức Thì</h3>
+                </div>
+                <button onclick="closeImportModal()" class="text-gray-400 hover:text-gray-700 dark:hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-5 space-y-4 overflow-y-auto flex-1">
+                <div id="dropZone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)"
+                    class="border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-gaming-neon rounded-xl p-8 text-center bg-gray-50 dark:bg-gray-900/60 transition cursor-pointer flex flex-col items-center justify-center space-y-3">
+                    <div class="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 flex items-center justify-center text-cyan-600 dark:text-gaming-neon text-3xl">
+                        <i class="fa-solid fa-file-circle-check"></i>
+                    </div>
+                    <div>
+                        <p class="text-base font-bold text-gray-800 dark:text-gray-200">Kéo & Thả File Ngay Vào Đây</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Quét & Đối Chiếu Trùng Tức Thì Khi Chọn File</p>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Hỗ trợ: .XLSX, .XLS, .CSV, .DOCX, .PDF, .TXT, .JSON</p>
+                    </div>
+                    <input type="file" id="fileInput" onchange="handleFileSelect(event)" accept=".xlsx, .xls, .csv, .docx, .pdf, .txt, .json" class="hidden">
+                    <button onclick="document.getElementById('fileInput').click()" class="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-gaming text-xs font-bold rounded-lg border border-gray-300 dark:border-gray-700">
+                        Chọn File Từ Máy
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-800">
+                    <div>
+                        <label class="block text-xs font-gaming text-gray-500 dark:text-gray-400 uppercase mb-1">Gán Tên Game Mặc Định (Nếu file thiếu)</label>
+                        <input type="text" id="importDefaultGame" placeholder="VD: Genshin Impact..." class="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded text-xs text-gray-900 dark:text-gray-200 outline-none focus:border-gaming-neon">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-gaming text-gray-500 dark:text-gray-400 uppercase mb-1">Trạng Thái Khi Nhập</label>
+                        <select id="importDefaultStatus" class="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded text-xs text-gray-900 dark:text-gray-200 outline-none focus:border-gaming-neon">
+                            <option value="UNUSED">Chưa Dùng (Sẵn Sàng)</option>
+                            <option value="USED">Đã Dùng</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="importLoading" class="hidden py-8 text-center space-y-2">
+                    <i class="fa-solid fa-spinner fa-spin text-3xl text-cyan-600 dark:text-gaming-neon"></i>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-gaming uppercase tracking-wider">Đang quét file & kiểm tra dữ liệu trùng...</p>
+                </div>
+            </div>
+
+            <div class="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex justify-end">
+                <button onclick="closeImportModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-gaming font-bold text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Detailed Duplicate Scan Results Preview -->
+    <div id="previewModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gaming-card w-full max-w-3xl rounded-xl border border-gray-200 dark:border-gray-700 shadow-purple-glow overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                <div class="flex items-center space-x-2 text-amber-500">
+                    <i class="fa-solid fa-shield-halved text-lg"></i>
+                    <h3 class="font-brand font-bold text-gray-900 dark:text-white text-base">Báo Cáo Phân Tích & Kiểm Trùng File</h3>
+                </div>
+                <button onclick="closePreviewModal()" class="text-gray-400 hover:text-gray-700 dark:hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-5 space-y-4 overflow-y-auto flex-1">
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-800 text-center">
+                        <p class="text-[11px] font-gaming text-gray-500 dark:text-gray-400 uppercase">Tổng Phát Hiện Trong File</p>
+                        <p id="prevTotal" class="text-2xl font-bold font-gaming text-gray-900 dark:text-white">0</p>
+                    </div>
+                    <div class="bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800/50 text-center">
+                        <p class="text-[11px] font-gaming text-emerald-600 dark:text-emerald-400 uppercase">Code Mới Hợp Lệ</p>
+                        <p id="prevValid" class="text-2xl font-bold font-gaming text-emerald-600 dark:text-gaming-success">0</p>
+                    </div>
+                    <div class="bg-red-50 dark:bg-red-950/40 p-3 rounded-lg border border-red-200 dark:border-red-800/50 text-center">
+                        <p class="text-[11px] font-gaming text-red-600 dark:text-red-400 uppercase">Code Trùng Lặp Kho</p>
+                        <p id="prevDup" class="text-2xl font-bold font-gaming text-red-600 dark:text-gaming-danger">0</p>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden max-h-64 overflow-y-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-400 font-gaming uppercase sticky top-0 z-10">
+                            <tr>
+                                <th class="p-2.5">Tên Game</th>
+                                <th class="p-2.5">Mã Giftcode</th>
+                                <th class="p-2.5">Kết Quả Kiểm Trùng</th>
+                            </tr>
+                        </thead>
+                        <tbody id="previewTableBody" class="divide-y divide-gray-200 dark:divide-gray-800">
+                            <!-- Preview Items Dynamic -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="bg-gray-50 dark:bg-gray-900/70 p-3 rounded-lg border border-gray-200 dark:border-gray-800 space-y-2">
+                    <label class="block text-xs font-gaming text-gray-700 dark:text-gray-300 uppercase font-bold">Lựa chọn xử lý đối với các mã bị trùng:</label>
+                    <div class="flex flex-wrap gap-4 text-xs">
+                        <label class="inline-flex items-center text-gray-700 dark:text-gray-300 cursor-pointer">
+                            <input type="radio" name="mergeStrategy" value="SKIP" checked class="text-gaming-accent">
+                            <span class="ml-1.5 font-bold text-emerald-600 dark:text-gaming-success">Bỏ qua mã trùng (Chỉ lưu các mã MỚI HỢP LỆ)</span>
+                        </label>
+                        <label class="inline-flex items-center text-gray-700 dark:text-gray-300 cursor-pointer">
+                            <input type="radio" name="mergeStrategy" value="OVERWRITE" class="text-gaming-accent">
+                            <span class="ml-1.5">Ghi đè / Cập nhật lại các mã cũ</span>
+                        </label>
+                        <label class="inline-flex items-center text-gray-700 dark:text-gray-300 cursor-pointer">
+                            <input type="radio" name="mergeStrategy" value="ALL" class="text-gaming-accent">
+                            <span class="ml-1.5 text-gray-500 dark:text-gray-400">Lưu tất cả bất chấp trùng lặp</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex justify-end space-x-3">
+                <button onclick="closePreviewModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-gaming font-bold text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">Hủy Bỏ</button>
+                <button onclick="confirmImport()" class="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-gaming font-bold text-sm rounded-lg shadow-md flex items-center space-x-2">
+                    <i class="fa-solid fa-check-double"></i>
+                    <span id="btnConfirmText">1-Click Thêm Mã Hợp Lệ Về Kho</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Single Code Edit/Add -->
+    <div id="addModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gaming-card w-full max-w-lg rounded-xl border border-gray-200 dark:border-gray-700 shadow-purple-glow overflow-hidden">
+            <div class="p-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                <h3 id="addModalTitle" class="font-brand font-bold text-gray-900 dark:text-white text-base">Thêm Giftcode Thủ Công</h3>
+                <button onclick="closeAddModal()" class="text-gray-400 hover:text-gray-700 dark:hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="codeForm" onsubmit="saveCode(event)" class="p-5 space-y-4">
+                <input type="hidden" id="editCodeId">
+
+                <div>
+                    <label class="block text-xs font-gaming font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">Tên Game <span class="text-red-500">*</span></label>
+                    <input type="text" id="formGame" required placeholder="VD: Genshin Impact, Free Fire..." list="gameSuggestions"
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:border-gaming-accent outline-none">
+                    <datalist id="gameSuggestions"></datalist>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-gaming font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">Mã Giftcode <span class="text-red-500">*</span></label>
+                    <input type="text" id="formCode" required placeholder="VD: GIFT2026FREE" 
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg font-mono text-sm text-gray-900 dark:text-gray-100 uppercase focus:border-gaming-accent outline-none">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-gaming font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">Hạn Sử Dụng</label>
+                        <input type="date" id="formExpiry" 
+                            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:border-gaming-accent outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-gaming font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">Trạng Thái Kho</label>
+                        <select id="formStatus" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:border-gaming-accent outline-none">
+                            <option value="UNUSED">Chưa dùng (Sẵn sàng)</option>
+                            <option value="USED">Đã dùng</option>
+                            <option value="EXPIRED">Hết hạn</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-gaming font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">Ghi Chú</label>
+                    <input type="text" id="formNote" placeholder="Ghi chú thêm..." 
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:border-gaming-accent outline-none">
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-3 border-t border-gray-200 dark:border-gray-800">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-gaming font-bold text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700">Hủy</button>
+                    <button type="submit" class="px-5 py-2 bg-gaming-accent hover:bg-gaming-accentHover text-white font-gaming font-bold text-sm rounded-lg shadow-purple-glow">
+                        Lưu & Tự Động Lưu Kho
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-10 opacity-0 transition-all duration-300 pointer-events-none">
+        <div id="toastContent" class="bg-gray-900 text-white dark:bg-gray-800 border border-gray-700 px-4 py-3 rounded-lg shadow-2xl flex items-center space-x-3"></div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const SAMPLE_CODES = [
+            { id: '1', game: 'Genshin Impact', code: 'GENSHIN2026GIFT', expiry: '2026-12-31', status: 'UNUSED', note: 'Mẫu tự động lưu', createdAt: new Date().toISOString() },
+            { id: '2', game: 'Honkai: Star Rail', code: 'STARRAILVIP888', expiry: '2026-10-15', status: 'UNUSED', note: 'Mẫu tự động lưu', createdAt: new Date().toISOString() }
+        ];
+
+        let codeList = [];
+        let parsedPreviewList = [];
+        let selectedIds = new Set();
+        let currentBulkEditMode = 'SELECTED';
+        let lastAutoSaveTimestamp = null;
+
+        window.onload = function() {
+            initTheme();
+            loadStoredData();
+            renderApp();
+        };
+
+        // --- THEME ENGINE ---
+        function initTheme() {
+            const savedTheme = localStorage.getItem('giftcode_theme') || 'dark';
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+                document.getElementById('themeIcon').className = 'fa-solid fa-sun text-base';
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('themeIcon').className = 'fa-solid fa-moon text-base';
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('giftcode_theme', isDark ? 'dark' : 'light');
+            document.getElementById('themeIcon').className = isDark ? 'fa-solid fa-sun text-base' : 'fa-solid fa-moon text-base';
+            showToast(`Đã chuyển sang giao diện ${isDark ? 'Tối (Dark)' : 'Sáng (Light)'}`);
+        }
+
+        // --- AUTOMATIC BACKUP & PERSISTENCE ENGINE ---
+        function loadStoredData() {
+            const storedData = localStorage.getItem('giftcode_vault_db');
+            const storedTimestamp = localStorage.getItem('giftcode_vault_last_saved');
+
+            if (storedData) {
+                try {
+                    codeList = JSON.parse(storedData);
+                    lastAutoSaveTimestamp = storedTimestamp || new Date().toISOString();
+                } catch (e) {
+                    console.error('Lỗi đọc dữ liệu local, khởi tạo dữ liệu mặc định', e);
+                    codeList = [...SAMPLE_CODES];
+                    saveToStorage(true);
+                }
+            } else {
+                codeList = [...SAMPLE_CODES];
+                saveToStorage(true);
+            }
+            updateSaveBadgeStatus();
+        }
+
+        function saveToStorage(silent = false) {
+            try {
+                const nowIso = new Date().toISOString();
+                localStorage.setItem('giftcode_vault_db', JSON.stringify(codeList));
+                localStorage.setItem('giftcode_vault_last_saved', nowIso);
+                lastAutoSaveTimestamp = nowIso;
+                
+                updateSaveBadgeStatus();
+                if (!silent) {
+                    showToast('Đã tự động sao lưu dữ liệu!', 'success');
+                }
+            } catch (err) {
+                console.error('Không thể lưu vào localStorage:', err);
+                showToast('Lỗi tự động lưu dữ liệu: Bộ nhớ quá tải!', 'danger');
+            }
+        }
+
+        function updateSaveBadgeStatus() {
+            const badgeText = document.getElementById('autoSaveText');
+            const modalSavedTime = document.getElementById('backupLastSavedTime');
+            const modalCount = document.getElementById('backupTotalCount');
+
+            const timeFormatted = lastAutoSaveTimestamp ? new Date(lastAutoSaveTimestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Vừa mới';
+
+            if (badgeText) {
+                badgeText.innerText = `Đã tự động lưu (${timeFormatted})`;
+            }
+
+            if (modalSavedTime) {
+                modalSavedTime.innerText = lastAutoSaveTimestamp ? `${new Date(lastAutoSaveTimestamp).toLocaleDateString('vi-VN')} ${timeFormatted}` : 'Đã tự động lưu';
+            }
+
+            if (modalCount) {
+                modalCount.innerText = `${codeList.length} mã giftcode trong kho`;
+            }
+        }
+
+        // --- BACKUP & RESTORE MODAL CONTROLS ---
+        function openBackupModal() {
+            updateSaveBadgeStatus();
+            document.getElementById('backupModal').classList.remove('hidden');
+        }
+
+        function closeBackupModal() {
+            document.getElementById('backupModal').classList.add('hidden');
+        }
+
+        function downloadFullBackupFile() {
+            if (codeList.length === 0) {
+                showToast('Kho giftcode trống, không có dữ liệu để xuất backup!', 'danger');
+                return;
+            }
+
+            const backupObj = {
+                app: "GIFTVAULT_PRO",
+                version: "2.0",
+                backupDate: new Date().toISOString(),
+                totalCodes: codeList.length,
+                data: codeList
+            };
+
+            const filename = `giftvault_backup_${new Date().toISOString().slice(0,10)}_${Date.now()}.json`;
+            downloadBlob(JSON.stringify(backupObj, null, 2), filename, 'application/json');
+            showToast('Đã xuất thành công file sao lưu đầy đủ!');
+        }
+
+        function handleRestoreFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    let importedCodes = [];
+
+                    if (Array.isArray(parsed)) {
+                        importedCodes = parsed;
+                    } else if (parsed && Array.isArray(parsed.data)) {
+                        importedCodes = parsed.data;
+                    } else {
+                        throw new Error('Cấu trúc file backup không đúng định dạng!');
+                    }
+
+                    if (importedCodes.length === 0) {
+                        showToast('File sao lưu không chứa giftcode nào!', 'danger');
+                        return;
+                    }
+
+                    if (confirm(`Bạn có chắc chắn muốn khôi phục ${importedCodes.length} mã giftcode từ tệp này? Dữ liệu hiện tại sẽ được thay thế.`)) {
+                        codeList = importedCodes.map(item => ({
+                            id: item.id || Date.now().toString() + Math.random().toString(36).substr(2, 4),
+                            game: item.game || 'Game Restore',
+                            code: (item.code || '').toUpperCase().trim(),
+                            expiry: item.expiry || '',
+                            status: item.status || 'UNUSED',
+                            note: item.note || 'Khôi phục từ Backup',
+                            createdAt: item.createdAt || new Date().toISOString()
+                        })).filter(item => item.code.length > 0);
+
+                        saveToStorage();
+                        clearSelections();
+                        renderApp();
+                        closeBackupModal();
+
+                        if (typeof confetti === 'function') {
+                            confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 } });
+                        }
+
+                        showToast(`Đã khôi phục thành công ${codeList.length} giftcode vào kho!`);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast('Khôi phục thất bại: ' + err.message, 'danger');
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function resetAllStorageData() {
+            if (confirm('CẢNH BÁO: Thao tác này sẽ XÓA SẠCH toàn bộ dữ liệu giftcode đã lưu trong trình duyệt! Bạn có chắc chắn không?')) {
+                if (confirm('XÁC NHẬN LẦN 2: Bấm OK để chính thức xóa trắng kho dữ liệu.')) {
+                    localStorage.removeItem('giftcode_vault_db');
+                    localStorage.removeItem('giftcode_vault_last_saved');
+                    codeList = [];
+                    clearSelections();
+                    saveToStorage(true);
+                    renderApp();
+                    closeBackupModal();
+                    showToast('Đã xóa sạch dữ liệu khỏi trình duyệt!');
+                }
+            }
+        }
+
+        function toggleSelectAll(masterCheckbox) {
+            const filteredCodes = getFilteredCodes();
+            if (masterCheckbox.checked) {
+                filteredCodes.forEach(item => selectedIds.add(item.id));
+            } else {
+                selectedIds.clear();
+            }
+            updateBulkBar();
+            renderTableRows();
+        }
+
+        function toggleSelectRow(id) {
+            if (selectedIds.has(id)) {
+                selectedIds.delete(id);
+            } else {
+                selectedIds.add(id);
+            }
+            updateBulkBar();
+            renderTableRows();
+        }
+
+        function clearSelections() {
+            selectedIds.clear();
+            const masterCb = document.getElementById('selectAllCheckbox');
+            if (masterCb) masterCb.checked = false;
+            updateBulkBar();
+            renderTableRows();
+        }
+
+        function updateBulkBar() {
+            const bar = document.getElementById('bulkActionsBar');
+            const countElem = document.getElementById('selectedCount');
+            const masterCb = document.getElementById('selectAllCheckbox');
+            
+            const totalFiltered = getFilteredCodes().length;
+            countElem.innerText = selectedIds.size;
+
+            if (selectedIds.size > 0) {
+                bar.classList.remove('hidden');
+            } else {
+                bar.classList.add('hidden');
+            }
+
+            if (masterCb) {
+                masterCb.checked = totalFiltered > 0 && selectedIds.size === totalFiltered;
+            }
+        }
+
+        function openBulkGameModal(mode = 'SELECTED') {
+            currentBulkEditMode = mode;
+            let targetCount = 0;
+
+            if (mode === 'SELECTED') {
+                targetCount = selectedIds.size;
+                if (targetCount === 0) {
+                    showToast('Vui lòng chọn ít nhất 1 giftcode để đổi tên game!', 'danger');
+                    return;
+                }
+                document.getElementById('bulkGameTargetInfo').innerText = `Đang chọn ${targetCount} giftcode để đổi tên Game hàng loạt.`;
+            } else {
+                const filtered = getFilteredCodes();
+                targetCount = filtered.length;
+                if (targetCount === 0) {
+                    showToast('Không có mã nào trong bộ lọc hiện tại!', 'danger');
+                    return;
+                }
+                document.getElementById('bulkGameTargetInfo').innerText = `Đang áp dụng cho TẤT CẢ ${targetCount} giftcode theo bộ lọc hiển thị hiện tại.`;
+            }
+
+            document.getElementById('bulkNewGameName').value = '';
+            document.getElementById('bulkGameModal').classList.remove('hidden');
+        }
+
+        function closeBulkGameModal() {
+            document.getElementById('bulkGameModal').classList.add('hidden');
+        }
+
+        function confirmBulkGameEdit() {
+            const newGame = document.getElementById('bulkNewGameName').value.trim();
+            if (!newGame) {
+                showToast('Vui lòng nhập tên Game mới!', 'danger');
+                return;
+            }
+
+            let updatedCount = 0;
+
+            if (currentBulkEditMode === 'SELECTED') {
+                codeList.forEach(item => {
+                    if (selectedIds.has(item.id)) {
+                        item.game = newGame;
+                        updatedCount++;
+                    }
+                });
+            } else {
+                const filteredIds = new Set(getFilteredCodes().map(c => c.id));
+                codeList.forEach(item => {
+                    if (filteredIds.has(item.id)) {
+                        item.game = newGame;
+                        updatedCount++;
+                    }
+                });
+            }
+
+            saveToStorage();
+            closeBulkGameModal();
+            clearSelections();
+            renderApp();
+
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+            }
+
+            showToast(`Đã đổi tên Game thành "${newGame}" cho ${updatedCount} giftcode & Tự động lưu!`);
+        }
+
+        function bulkChangeStatus(newStatus) {
+            if (!newStatus || selectedIds.size === 0) return;
+
+            let count = 0;
+            codeList.forEach(item => {
+                if (selectedIds.has(item.id)) {
+                    item.status = newStatus;
+                    count++;
+                }
+            });
+
+            saveToStorage();
+            clearSelections();
+            renderApp();
+            showToast(`Đã đổi trạng thái cho ${count} mã giftcode & Tự động lưu!`);
+        }
+
+        function bulkDelete() {
+            if (selectedIds.size === 0) return;
+
+            if (confirm(`Bạn có chắc chắn muốn XÓA ${selectedIds.size} giftcode đã chọn?`)) {
+                codeList = codeList.filter(item => !selectedIds.has(item.id));
+                saveToStorage();
+                clearSelections();
+                renderApp();
+                showToast(`Đã xóa thành công các mã được chọn!`);
+            }
+        }
+
+        function switchTab(tab) {
+            const vaultSec = document.getElementById('vaultSection');
+            const directSec = document.getElementById('directInputSection');
+            const vaultBtn = document.getElementById('tabVaultBtn');
+            const directBtn = document.getElementById('tabDirectBtn');
+
+            if (tab === 'vault') {
+                vaultSec.classList.remove('hidden');
+                directSec.classList.add('hidden');
+                vaultBtn.className = "pb-3 px-2 font-gaming font-bold text-sm border-b-2 border-gaming-neon text-cyan-600 dark:text-gaming-neon flex items-center space-x-2";
+                directBtn.className = "pb-3 px-2 font-gaming font-bold text-sm border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center space-x-2";
+            } else {
+                vaultSec.classList.add('hidden');
+                directSec.classList.remove('hidden');
+                directBtn.className = "pb-3 px-2 font-gaming font-bold text-sm border-b-2 border-gaming-neon text-cyan-600 dark:text-gaming-neon flex items-center space-x-2";
+                vaultBtn.className = "pb-3 px-2 font-gaming font-bold text-sm border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center space-x-2";
+            }
+        }
+
+        function openImportModal() {
+            document.getElementById('importModal').classList.remove('hidden');
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.add('hidden');
+            document.getElementById('importLoading').classList.add('hidden');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            document.getElementById('dropZone').classList.add('drag-active');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            document.getElementById('dropZone').classList.remove('drag-active');
+        }
+
+        function handleFileDrop(e) {
+            e.preventDefault();
+            document.getElementById('dropZone').classList.remove('drag-active');
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                processUploadedFile(e.dataTransfer.files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            if (e.target.files && e.target.files[0]) {
+                processUploadedFile(e.target.files[0]);
+            }
+        }
+
+        async function processUploadedFile(file) {
+            const loading = document.getElementById('importLoading');
+            loading.classList.remove('hidden');
+
+            const fileName = file.name.toLowerCase();
+            const defaultGame = document.getElementById('importDefaultGame').value.trim() || 'Game Tải Up';
+            const defaultStatus = document.getElementById('importDefaultStatus').value;
+
+            let extractedItems = [];
+
+            try {
+                if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv')) {
+                    extractedItems = await parseExcelFile(file, defaultGame, defaultStatus);
+                } else if (fileName.endsWith('.docx')) {
+                    extractedItems = await parseWordFile(file, defaultGame, defaultStatus);
+                } else if (fileName.endsWith('.pdf')) {
+                    extractedItems = await parsePdfFile(file, defaultGame, defaultStatus);
+                } else if (fileName.endsWith('.json')) {
+                    extractedItems = await parseJsonFile(file, defaultGame, defaultStatus);
+                } else {
+                    extractedItems = await parseTextFile(file, defaultGame, defaultStatus);
+                }
+
+                closeImportModal();
+                if (extractedItems.length === 0) {
+                    showToast('Không phát hiện được giftcode nào trong file!', 'danger');
+                } else {
+                    openPreviewModal(extractedItems);
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Lỗi khi đọc file: ' + err.message, 'danger');
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        function processDirectInput() {
+            const game = document.getElementById('directGame').value.trim();
+            const expiry = document.getElementById('directExpiry').value;
+            const rawText = document.getElementById('directPasteText').value;
+
+            if (!game) {
+                showToast('Vui lòng nhập tên Game gán chung!', 'danger');
+                return;
+            }
+
+            if (!rawText.trim()) {
+                showToast('Vui lòng dán danh sách mã giftcode!', 'danger');
+                return;
+            }
+
+            const codes = extractCodesWithRegex(rawText);
+            if (codes.length === 0) {
+                showToast('Không tìm thấy mã hợp lệ nào!', 'danger');
+                return;
+            }
+
+            const items = codes.map(c => ({
+                game,
+                code: c,
+                expiry,
+                status: 'UNUSED'
+            }));
+
+            openPreviewModal(items);
+        }
+
+        function parseExcelFile(file, defaultGame, defaultStatus) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+                        const items = [];
+                        rows.forEach((row) => {
+                            if (!row || row.length === 0) return;
+                            const rowStr = row.join(' ');
+                            
+                            let game = defaultGame;
+                            let code = String(row[0] || '').trim();
+                            if (row[1]) game = String(row[1]).trim();
+
+                            const validCodes = extractCodesWithRegex(code.length > 0 ? code : rowStr);
+                            validCodes.forEach(c => {
+                                items.push({ game, code: c, status: defaultStatus });
+                            });
+                        });
+                        resolve(items);
+                    } catch (err) { reject(err); }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function parseWordFile(file, defaultGame, defaultStatus) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    mammoth.extractRawText({ arrayBuffer: e.target.result })
+                        .then(result => {
+                            const codes = extractCodesWithRegex(result.value);
+                            const items = codes.map(code => ({ game: defaultGame, code, status: defaultStatus }));
+                            resolve(items);
+                        })
+                        .catch(reject);
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        async function parsePdfFile(file, defaultGame, defaultStatus) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = '';
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const tokenProps = await page.getTextContent();
+                fullText += tokenProps.items.map(item => item.str).join(' ') + '\n';
+            }
+
+            const codes = extractCodesWithRegex(fullText);
+            return codes.map(code => ({ game: defaultGame, code, status: defaultStatus }));
+        }
+
+        function parseTextFile(file, defaultGame, defaultStatus) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const codes = extractCodesWithRegex(e.target.result);
+                    resolve(codes.map(code => ({ game: defaultGame, code, status: defaultStatus })));
+                };
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+
+        function parseJsonFile(file, defaultGame, defaultStatus) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const parsed = JSON.parse(e.target.result);
+                        let sourceArray = Array.isArray(parsed) ? parsed : (parsed.data && Array.isArray(parsed.data) ? parsed.data : []);
+                        
+                        if (sourceArray.length > 0) {
+                            const items = sourceArray.map(item => ({
+                                game: item.game || defaultGame,
+                                code: (item.code || '').toUpperCase().trim(),
+                                expiry: item.expiry || '',
+                                status: item.status || defaultStatus
+                            })).filter(i => i.code.length > 0);
+                            resolve(items);
+                        } else { resolve([]); }
+                    } catch (err) { reject(err); }
+                };
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+
+        function extractCodesWithRegex(text) {
+            if (!text) return [];
+            const pattern = /\b[A-Z0-9_-]{5,30}\b/gi;
+            const matches = text.match(pattern) || [];
+            
+            const stopWords = new Set(['HTTP', 'HTTPS', 'THANG', 'SELECT', 'GIFTCODE', 'GAME', 'REWARD']);
+            const cleanCodes = new Set();
+
+            matches.forEach(m => {
+                const upper = m.toUpperCase().trim();
+                if (!/^\d+$/.test(upper) && !stopWords.has(upper) && upper.length >= 5) {
+                    cleanCodes.add(upper);
+                }
+            });
+
+            return Array.from(cleanCodes);
+        }
+
+        function openPreviewModal(items) {
+            parsedPreviewList = items;
+            const existingMap = new Map(codeList.map(c => [c.code.toUpperCase(), c]));
+
+            let validCount = 0;
+            let dupCount = 0;
+
+            const tableBody = document.getElementById('previewTableBody');
+            tableBody.innerHTML = items.map(item => {
+                const codeUpper = item.code.toUpperCase();
+                const existingItem = existingMap.get(codeUpper);
+
+                if (existingItem) {
+                    dupCount++;
+                    return `
+                        <tr class="hover:bg-gray-100 dark:hover:bg-gray-800/50 bg-red-50 dark:bg-red-950/20">
+                            <td class="p-2.5 text-gray-800 dark:text-gray-300">${escapeHtml(item.game)}</td>
+                            <td class="p-2.5 font-mono font-bold text-red-600 dark:text-red-400">${escapeHtml(item.code)}</td>
+                            <td class="p-2.5">
+                                <span class="px-2 py-0.5 rounded bg-red-100 dark:bg-red-950 text-red-600 dark:text-gaming-danger border border-red-200 dark:border-red-800 font-bold">
+                                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>Trùng kho (${escapeHtml(existingItem.game)})
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    validCount++;
+                    return `
+                        <tr class="hover:bg-gray-100 dark:hover:bg-gray-800/50">
+                            <td class="p-2.5 text-gray-800 dark:text-gray-300">${escapeHtml(item.game)}</td>
+                            <td class="p-2.5 font-mono font-bold text-cyan-600 dark:text-gaming-neon">${escapeHtml(item.code)}</td>
+                            <td class="p-2.5">
+                                <span class="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-gaming-success border border-emerald-200 dark:border-emerald-800 font-bold">
+                                    <i class="fa-solid fa-check mr-1"></i>Hợp Lệ (Mới)
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }).join('');
+
+            document.getElementById('prevTotal').innerText = items.length;
+            document.getElementById('prevValid').innerText = validCount;
+            document.getElementById('prevDup').innerText = dupCount;
+            document.getElementById('btnConfirmText').innerText = `1-Click Thêm ${validCount} Mã Mới Về Kho`;
+
+            document.getElementById('previewModal').classList.remove('hidden');
+        }
+
+        function closePreviewModal() {
+            document.getElementById('previewModal').classList.add('hidden');
+        }
+
+        function confirmImport() {
+            const strategy = document.querySelector('input[name="mergeStrategy"]:checked').value;
+            const existingMap = new Map(codeList.map(c => [c.code.toUpperCase(), c]));
+
+            let addedCount = 0;
+            let updatedCount = 0;
+
+            parsedPreviewList.forEach(item => {
+                const codeUpper = item.code.toUpperCase();
+                const exists = existingMap.has(codeUpper);
+
+                if (!exists) {
+                    codeList.unshift({
+                        id: Date.now().toString() + Math.random().toString(36).substr(2, 4),
+                        game: item.game,
+                        code: codeUpper,
+                        expiry: item.expiry || '',
+                        status: item.status || 'UNUSED',
+                        createdAt: new Date().toISOString()
+                    });
+                    addedCount++;
+                } else {
+                    if (strategy === 'OVERWRITE') {
+                        const target = existingMap.get(codeUpper);
+                        target.game = item.game;
+                        target.status = item.status || target.status;
+                        updatedCount++;
+                    } else if (strategy === 'ALL') {
+                        codeList.unshift({
+                            id: Date.now().toString() + Math.random().toString(36).substr(2, 4),
+                            game: item.game,
+                            code: codeUpper,
+                            expiry: item.expiry || '',
+                            status: item.status || 'UNUSED',
+                            createdAt: new Date().toISOString()
+                        });
+                        addedCount++;
+                    }
+                }
+            });
+
+            saveToStorage();
+            closePreviewModal();
+            switchTab('vault');
+            renderApp();
+
+            if (addedCount > 0 && typeof confetti === 'function') {
+                confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 } });
+            }
+
+            showToast(`Hoàn tất! Đã tự động lưu ${addedCount} mã mới, cập nhật ${updatedCount} mã.`);
+        }
+
+        function renderApp() {
+            renderStats();
+            renderGameSuggestions();
+            renderTableRows();
+            updateBulkBar();
+        }
+
+        function renderStats() {
+            document.getElementById('statTotal').innerText = codeList.length;
+            document.getElementById('statUnused').innerText = codeList.filter(c => c.status === 'UNUSED').length;
+            document.getElementById('statUsed').innerText = codeList.filter(c => c.status === 'USED').length;
+            document.getElementById('statExpired').innerText = codeList.filter(c => c.status === 'EXPIRED').length;
+        }
+
+        function renderGameSuggestions() {
+            const games = [...new Set(codeList.map(c => c.game))];
+            const filterSelect = document.getElementById('filterGame');
+            const currentFilterVal = filterSelect.value;
+            filterSelect.innerHTML = '<option value="ALL">Tất cả Game</option>' + 
+                games.map(g => `<option value="${escapeHtml(g)}"${currentFilterVal === g ? ' selected' : ''}>${escapeHtml(g)}</option>`).join('');
+
+            const datalist = document.getElementById('gameSuggestions');
+            datalist.innerHTML = games.map(g => `<option value="${escapeHtml(g)}">`).join('');
+        }
+
+        function getFilteredCodes() {
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
+            const gameFilter = document.getElementById('filterGame').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+
+            return codeList.filter(item => {
+                const matchSearch = !searchQuery || 
+                    item.code.toLowerCase().includes(searchQuery) ||
+                    item.game.toLowerCase().includes(searchQuery);
+
+                const matchGame = gameFilter === 'ALL' || item.game === gameFilter;
+                const matchStatus = statusFilter === 'ALL' || item.status === statusFilter;
+
+                return matchSearch && matchGame && matchStatus;
+            });
+        }
+
+        function renderTableRows() {
+            const filtered = getFilteredCodes();
+            const tbody = document.getElementById('codeTableBody');
+            const emptyState = document.getElementById('emptyState');
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            emptyState.classList.remove('flex');
+
+            tbody.innerHTML = filtered.map(item => {
+                const isChecked = selectedIds.has(item.id);
+                let statusBadge = '';
+                if (item.status === 'UNUSED') {
+                    statusBadge = `<span class="px-2.5 py-1 text-xs font-gaming font-bold rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-gaming-success border border-emerald-300 dark:border-emerald-800/40">CHƯA DÙNG</span>`;
+                } else if (item.status === 'USED') {
+                    statusBadge = `<span class="px-2.5 py-1 text-xs font-gaming font-bold rounded-md bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-700">ĐÃ DÙNG</span>`;
+                } else {
+                    statusBadge = `<span class="px-2.5 py-1 text-xs font-gaming font-bold rounded-md bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-gaming-danger border border-red-300 dark:border-red-800/40">HẾT HẠN</span>`;
+                }
+
+                return `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition ${isChecked ? 'bg-purple-50/50 dark:bg-purple-950/20' : ''}">
+                        <td class="py-3.5 px-4 text-center">
+                            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleSelectRow('${item.id}')" class="w-4 h-4 text-purple-600 rounded border-gray-300 dark:border-gray-700 focus:ring-purple-500 cursor-pointer">
+                        </td>
+                        <td class="py-3.5 px-4 font-bold text-gray-900 dark:text-white font-gaming">
+                            ${escapeHtml(item.game)}
+                            ${item.note ? `<div class="text-[11px] font-normal text-gray-500">${escapeHtml(item.note)}</div>` : ''}
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-mono font-bold text-cyan-600 dark:text-gaming-neon bg-gray-100 dark:bg-gray-900 px-2.5 py-1 rounded border border-gray-200 dark:border-gray-800">${escapeHtml(item.code)}</span>
+                                <button onclick="copyToClipboard('${escapeHtml(item.code)}')" title="Sao chép" class="text-gray-400 hover:text-cyan-600 dark:hover:text-gaming-neon p-1">
+                                    <i class="fa-regular fa-copy"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="py-3.5 px-4 text-xs text-gray-500 dark:text-gray-400">${item.expiry ? formatDate(item.expiry) : '<span class="text-gray-400">Vĩnh viễn</span>'}</td>
+                        <td class="py-3.5 px-4 text-center">${statusBadge}</td>
+                        <td class="py-3.5 px-4 text-right">
+                            <div class="flex items-center justify-end space-x-1">
+                                <button onclick="toggleCodeStatus('${item.id}')" title="Đổi trạng thái" class="p-1.5 text-gray-400 hover:text-amber-500"><i class="fa-solid fa-rotate"></i></button>
+                                <button onclick="editCode('${item.id}')" title="Sửa" class="p-1.5 text-gray-400 hover:text-cyan-600 dark:hover:text-gaming-neon"><i class="fa-regular fa-pen-to-square"></i></button>
+                                <button onclick="deleteCode('${item.id}')" title="Xóa" class="p-1.5 text-gray-400 hover:text-red-500"><i class="fa-regular fa-trash-can"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openAddModal() {
+            document.getElementById('codeForm').reset();
+            document.getElementById('editCodeId').value = '';
+            document.getElementById('addModalTitle').innerText = 'Thêm Giftcode Thủ Công';
+            document.getElementById('addModal').classList.remove('hidden');
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').classList.add('hidden');
+        }
+
+        function saveCode(event) {
+            event.preventDefault();
+            const editId = document.getElementById('editCodeId').value;
+            const game = document.getElementById('formGame').value.trim();
+            const code = document.getElementById('formCode').value.trim().toUpperCase();
+            const expiry = document.getElementById('formExpiry').value;
+            const status = document.getElementById('formStatus').value;
+            const note = document.getElementById('formNote').value.trim();
+
+            if (editId) {
+                const idx = codeList.findIndex(c => c.id === editId);
+                if (idx !== -1) {
+                    codeList[idx] = { ...codeList[idx], game, code, expiry, status, note };
+                    showToast('Đã cập nhật giftcode!');
+                }
+            } else {
+                const exists = codeList.some(c => c.code.toUpperCase() === code);
+                if (exists) {
+                    if (!confirm(`Mã ${code} đã tồn tại trong kho. Bạn vẫn muốn thêm mới?`)) return;
+                }
+
+                codeList.unshift({
+                    id: Date.now().toString(),
+                    game, code, expiry, status, note,
+                    createdAt: new Date().toISOString()
+                });
+                showToast('Đã thêm giftcode mới!');
+            }
+
+            saveToStorage();
+            closeAddModal();
+            renderApp();
+        }
+
+        function editCode(id) {
+            const item = codeList.find(c => c.id === id);
+            if (!item) return;
+
+            document.getElementById('editCodeId').value = item.id;
+            document.getElementById('formGame').value = item.game;
+            document.getElementById('formCode').value = item.code;
+            document.getElementById('formExpiry').value = item.expiry || '';
+            document.getElementById('formStatus').value = item.status;
+            document.getElementById('formNote').value = item.note || '';
+
+            document.getElementById('addModalTitle').innerText = 'Sửa Giftcode';
+            document.getElementById('addModal').classList.remove('hidden');
+        }
+
+        function toggleCodeStatus(id) {
+            const item = codeList.find(c => c.id === id);
+            if (!item) return;
+
+            item.status = item.status === 'UNUSED' ? 'USED' : (item.status === 'USED' ? 'EXPIRED' : 'UNUSED');
+            saveToStorage();
+            renderApp();
+            showToast(`Đã chuyển trạng thái mã ${item.code}`);
+        }
+
+        function deleteCode(id) {
+            if (confirm('Xóa mã này khỏi kho?')) {
+                codeList = codeList.filter(c => c.id !== id);
+                selectedIds.delete(id);
+                saveToStorage();
+                renderApp();
+                showToast('Đã xóa giftcode!');
+            }
+        }
+
+        function cleanOldCodes() {
+            const trash = codeList.filter(c => c.status === 'USED' || c.status === 'EXPIRED').length;
+            if (trash === 0) return showToast('Không có mã rác!', 'danger');
+
+            if (confirm(`Xóa ${trash} mã đã dùng / hết hạn?`)) {
+                codeList = codeList.filter(c => c.status === 'UNUSED');
+                clearSelections();
+                saveToStorage();
+                renderApp();
+                showToast(`Đã xóa ${trash} mã rác!`);
+            }
+        }
+
+        function exportData(type) {
+            if (codeList.length === 0) return showToast('Kho dữ liệu trống!', 'danger');
+
+            const filename = `giftcodes_${new Date().toISOString().slice(0,10)}`;
+
+            if (type === 'excel') {
+                const worksheetData = codeList.map(c => ({
+                    'Tên Game': c.game,
+                    'Mã Giftcode': c.code,
+                    'Hạn Sử Dụng': c.expiry || 'Vĩnh viễn',
+                    'Trạng Thái': c.status,
+                    'Ghi Chú': c.note || ''
+                }));
+                const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Giftcodes");
+                XLSX.writeFile(workbook, `${filename}.xlsx`);
+                showToast('Đã tải xuống file Excel!');
+            } else if (type === 'txt') {
+                const txt = codeList.map(c => `${c.game} | ${c.code} | ${c.status}`).join('\n');
+                downloadBlob(txt, `${filename}.txt`, 'text/plain');
+            } else if (type === 'json') {
+                downloadBlob(JSON.stringify(codeList, null, 2), `${filename}.json`, 'application/json');
+            }
+        }
+
+        function downloadBlob(content, filename, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast(`Đã xuất file ${filename}`);
+        }
+
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast(`Đã sao chép: ${text}`);
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastContent = document.getElementById('toastContent');
+            const icon = type === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-circle-exclamation text-red-400';
+            toastContent.innerHTML = `<i class="fa-solid ${icon} text-lg"></i><span class="text-xs font-gaming font-bold">${escapeHtml(message)}</span>`;
+            toast.classList.remove('translate-y-10', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => toast.classList.add('translate-y-10', 'opacity-0', 'pointer-events-none'), 3000);
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const p = dateStr.split('-');
+            return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dateStr;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
